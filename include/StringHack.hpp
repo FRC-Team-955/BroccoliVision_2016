@@ -1,4 +1,3 @@
-//TODO: Add this to it's own class! It reoccures in main.cpp
 #include <sstream>
 #include <string>
 

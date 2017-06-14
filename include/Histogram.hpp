@@ -61,7 +61,7 @@ class Histogram
 		void DumpHistogram(void)
 		{
 			for (int i = 0; i<range; i++)
-				 cout << histogram[i] << endl;
+				 std::cout << histogram[i] << std::endl;
 				//printf("%d, %d\n",i,histogram[i]) ;
 		}
 		

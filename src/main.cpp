@@ -37,7 +37,16 @@ int main (int argc, char** argv)
 
 	cv::waitKey (30);
 
-	Realsense *sensor = new Realsense();
+	//@30FPS, depth at 480x360, color can be 320x240, 640x480, 1280x720, or 1920x1080
+	Realsense *sensor = new Realsense(
+			640,				//depth_width,			 
+			480,				//depth_height,			
+			30,				//depth_framerate,	
+			480,				//bgr_width,			
+			360,				//bgr_height,			 
+			30,				//bgr_framerate,		
+			"2391016026"	//serial						
+			);
 
 	// Set up contour info
 	vector<vector<Point> > contours;
