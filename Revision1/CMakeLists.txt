@@ -1,0 +1,31 @@
+# Export all of the compile commands so I can use them in vim
+SET( CMAKE_EXPORT_COMPILE_COMMANDS 1 )
+
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
+
+# Revision1 project
+PROJECT(Revision1)
+
+# Configure OpenCV and Puxixml packages (They have cmake release files)
+FIND_PACKAGE(OpenCV REQUIRED)
+
+# Manually the librealsense libraries and headers
+FILE(GLOB Realsense_LIBS "/usr/local/lib/librealsense.so")
+INCLUDE_DIRECTORIES("/usr/local/include/librealsense/")
+FILE(GLOB Pugixml_LIBS "/usr/lib/libpugixml.so")
+INCLUDE_DIRECTORIES("/usr/include/pugixml.hpp")
+
+# Include the include directory for the project 
+INCLUDE_DIRECTORIES(include)
+
+# Compile source files
+FILE(GLOB SOURCES "src/*.cpp")
+
+# Use c++11 for clang
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ") 
+
+# Make all of the sources executable
+ADD_EXECUTABLE(Revision1 ${SOURCES})
+
+# Link libraries into the executable
+TARGET_LINK_LIBRARIES(Revision1 ${OpenCV_LIBS} ${Pugixml_LIBS} ${Realsense_LIBS})
