@@ -22,7 +22,6 @@ void Realsense::GrabFrames () {
 Realsense::Realsense(int depth_width, int depth_height, int depth_framerate, int bgr_width, int bgr_height, int bgr_framerate, char* serial) {
 	bgrmatCV = new Mat (bgr_height, bgr_width, CV_8UC3);
 	rgbmatCV = new Mat (bgr_height, bgr_width, CV_8UC3);
-	registeredCV = new Mat (bgr_height, bgr_width, CV_8UC3); 
 	largeDepthCV = new Mat (bgr_height, bgr_width, CV_16UC1); 
 	depthmatCV = new Mat (depth_height, depth_width, CV_16UC1);
 
@@ -68,7 +67,6 @@ float Realsense::GetTimeStamp() {
 Realsense::~Realsense() {
 	delete[] bgrmatCV;	 
 	delete[]	rgbmatCV;	 
-	delete[]	registeredCV;	 
 	delete[]	largeDepthCV;	 
 	delete[]	depthmatCV;
 }

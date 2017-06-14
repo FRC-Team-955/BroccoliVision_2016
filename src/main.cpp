@@ -1,6 +1,6 @@
 //OH GOD THIS CODE NEEDS REFACTORING FOR THE
-#define HEADLESS false
-#define DETAILS true
+#define HEADLESS true
+#define DETAILS false
 
 #include <RealSense.hpp>
 #include <Sliders.hpp>
@@ -37,13 +37,17 @@ int main (int argc, char** argv)
 
 	cv::waitKey (30);
 
-	//@30FPS, depth at 480x360, color can be 320x240, 640x480, 1280x720, or 1920x1080
+	//bgrmatCV = new Mat (1080, 1920, CV_8UC3);
+	//		rgbmatCV = new Mat (1080, 1920, CV_8UC3);
+	//		depthmatCV = new Mat (360, 480, CV_16UC1);
+	//		registeredCV = new Mat (1080, 1920, CV_8UC3); 
+	//		largeDepthCV = new Mat (1080, 1920, CV_16UC1); 
 	Realsense *sensor = new Realsense(
 			640,				//depth_width,			 
 			480,				//depth_height,			
 			30,				//depth_framerate,	
-			480,				//bgr_width,			
-			360,				//bgr_height,			 
+			1920,				//bgr_width,			
+			1080,				//bgr_height,			 
 			30,				//bgr_framerate,		
 			"2391016026"	//serial						
 			);
@@ -222,15 +226,17 @@ int main (int argc, char** argv)
 		Mat tri_channel_depth_8u;
 		cvtColor(*sensor->largeDepthCV / 6, tri_channel_depth, CV_GRAY2RGB);
 		tri_channel_depth.convertTo(tri_channel_depth_8u, CV_8U);
+
 		//rgbcap.write(countour_out);
 		//depthcap.write(tri_channel_depth_8u);
-
-#endif
-		cout << final_value << endl;
-
+		
 		if (cv::waitKey (30) == 27) {
 			return 0;
 		}
+#endif
+		cout << final_value << endl;
+
+		
 
 #if(DETAILS)
 		imshow ("Depth", *sensor->largeDepthCV * 20);
