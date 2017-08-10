@@ -1,5 +1,5 @@
 //OH GOD THIS CODE NEEDS REFACTORING FOR THE
-#define HEADLESS true
+#define HEADLESS false
 #define DETAILS false
 
 #include <RealSense.hpp>
@@ -32,13 +32,14 @@ int main (int argc, char** argv)
 
 	if (argc < 3) {
 		std::cerr << "Usage: " << argv[0] << " <Slider save dir> <Video file dir>" << std::endl;
+		return -1;
 	}
 
 	Sliders* interface = new Sliders (!HEADLESS, argv[1]);
 
 	cv::waitKey (30);
 
-	LocadedVideo *sensor = new LoadedVideo(argv[2]);
+	LoadedVideo *sensor = new LoadedVideo(argv[2]);
 
 	//Realsense *sensor = new Realsense(
 	//		640,				//depth_width,
@@ -72,12 +73,14 @@ int main (int argc, char** argv)
 	//Median Filter
 	Median *median_filter = new Median (10, default_value);
 
-	sensor->GrabFrames();
+	sensor->GrabFrames(false);
+
+	bool skip = false;
 
 	while (true)  /*if (false)*/ {
 		//if (false) { //Disable everything
 		// Tell the *sensor to supply frames
-		sensor->GrabFrames();
+		sensor->GrabFrames(skip);
 
 		// HSV thresholding on the RGB image, to detect only broccoli
 		cvtColor (*sensor->bgrmatCV, hsv_threshold, COLOR_BGR2HSV); // Convert to HSV colorspace
@@ -188,6 +191,7 @@ int main (int argc, char** argv)
 
 				size_t data_length = (width * height) ;
 
+				//TODO: Replace this shitty code with a memcpy!!!
 				unsigned short* pixelList = new unsigned short[data_length];
 
 				unsigned short *moving_pixelList = pixelList ;
@@ -236,16 +240,19 @@ int main (int argc, char** argv)
 				FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 128), 10);
 		imshow ("Contours", countour_out);
 
-		Mat tri_channel_depth;
-		Mat tri_channel_depth_8u;
-		cvtColor(*sensor->largeDepthCV / 6, tri_channel_depth, CV_GRAY2RGB);
-		tri_channel_depth.convertTo(tri_channel_depth_8u, CV_8U);
+		//Mat tri_channel_depth;
+		//Mat tri_channel_depth_8u;
+		//cvtColor(*sensor->largeDepthCV / 6, tri_channel_depth, CV_GRAY2RGB);
+		//tri_channel_depth.convertTo(tri_channel_depth_8u, CV_8U);
 
 		//rgbcap.write(countour_out);
 		//depthcap.write(tri_channel_depth_8u);
 
-		if (cv::waitKey (30) == 27) {
+		int key = cv::waitKey (30);
+		if (key == 27) {
 			return 0;
+		} else if (key == ' ') {
+			skip = !skip;
 		}
 #endif
 		cout << final_value << endl;

@@ -17,7 +17,7 @@ class Realsense : public VideoInterface
 		rs::context ctx;
 		rs::device* dev;
 	public:
-		void GrabFrames () ;
+		void GrabFrames (bool skip);
 
 		Realsense(int depth_width, int depth_height, int depth_framerate, int bgr_width, int bgr_height, int bgr_framerate, char* serial);
 

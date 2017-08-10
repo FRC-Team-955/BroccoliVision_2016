@@ -3,8 +3,8 @@ SET( CMAKE_EXPORT_COMPILE_COMMANDS 1 )
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
 
-# Revision1 project
-PROJECT(Revision1)
+# BroccoliBot_2016 project
+PROJECT(BroccoliBot_2016)
 
 # Configure OpenCV and Puxixml packages (They have cmake release files)
 FIND_PACKAGE(OpenCV REQUIRED)
@@ -25,7 +25,7 @@ FILE(GLOB SOURCES "src/*.cpp")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ") 
 
 # Make all of the sources executable
-ADD_EXECUTABLE(Revision1 ${SOURCES})
+ADD_EXECUTABLE(BroccoliBot_2016 ${SOURCES})
 
 # Link libraries into the executable
-TARGET_LINK_LIBRARIES(Revision1 ${OpenCV_LIBS} ${Pugixml_LIBS} ${Realsense_LIBS})
+TARGET_LINK_LIBRARIES(BroccoliBot_2016 ${OpenCV_LIBS} ${Pugixml_LIBS} ${Realsense_LIBS})

@@ -16,7 +16,7 @@ class VideoInterface
 		Mat *registeredCV;
 		Mat *largeDepthCV;
 
-		virtual void GrabFrames () = 0;
+		virtual void GrabFrames (bool skip) = 0;
 
 		virtual float GetTimeStamp () = 0;
 };

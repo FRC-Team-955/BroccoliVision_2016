@@ -22,10 +22,10 @@ using namespace cv;
 class LoadedVideo : public VideoInterface
 {
 	private:
-		ifstream file_in; 
+		std::ifstream file_in; 
 		int file_index = 0;
 	public:
-		void GrabFrames () ;
+		void GrabFrames (bool skip) ;
 
 		LoadedVideo(char* video_dir);
 

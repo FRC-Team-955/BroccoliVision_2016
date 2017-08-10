@@ -1,3 +1,5 @@
+#ifndef STRINGHACK_HPP
+#define STRINGHACK_HPP
 #include <sstream>
 #include <string>
 
@@ -11,4 +13,4 @@ namespace hack
 		return stm.str();
 	}
 }
-
+#endif

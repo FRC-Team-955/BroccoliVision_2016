@@ -1,6 +1,6 @@
 #include "RealSense.hpp"
 
-void Realsense::GrabFrames () {
+void Realsense::GrabFrames (bool skip) {
 	if (ctx.get_device_count() > 0)	{
 		dev->wait_for_frames();
 
@@ -22,7 +22,7 @@ void Realsense::GrabFrames () {
 Realsense::Realsense(int depth_width, int depth_height, int depth_framerate, int bgr_width, int bgr_height, int bgr_framerate, char* serial) {
 	bgrmatCV = new Mat (bgr_height, bgr_width, CV_8UC3);
 	rgbmatCV = new Mat (bgr_height, bgr_width, CV_8UC3);
-	largeDepthCV = new Mat (bgr_height, bgr_width, CV_16UC1); 
+	largeDepthCV = new Mat (bgr_height, bgr_width, CV_16UC1);
 	depthmatCV = new Mat (depth_height, depth_width, CV_16UC1);
 
 	//leftIRCV = new Mat (depth_height, depth_width, CV_8UC1);
@@ -65,9 +65,9 @@ float Realsense::GetTimeStamp() {
 }
 
 Realsense::~Realsense() {
-	delete[] bgrmatCV;	 
-	delete[]	rgbmatCV;	 
-	delete[]	largeDepthCV;	 
+	delete[] bgrmatCV;
+	delete[]	rgbmatCV;
+	delete[]	largeDepthCV;
 	delete[]	depthmatCV;
 }
 
@@ -76,7 +76,7 @@ bool Realsense::GetDeviceBySerial(char* serial) {
 		rs::device* current_dev = ctx.get_device(dev_idx);
 		std::cout << "Found device serial: " << current_dev->get_serial() << std::endl;
 		if (!strcmp(current_dev->get_serial(), serial)) {
-			dev = current_dev; 
+			dev = current_dev;
 			return true;
 		}
 	}
