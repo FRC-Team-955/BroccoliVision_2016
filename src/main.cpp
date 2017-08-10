@@ -1,6 +1,6 @@
 //OH GOD THIS CODE NEEDS REFACTORING FOR THE
 #define HEADLESS false
-#define DETAILS false
+#define DETAILS true
 
 #include <RealSense.hpp>
 #include <Sliders.hpp>
@@ -193,17 +193,18 @@ int main (int argc, char** argv)
 
 				//TODO: Replace this shitty code with a memcpy!!!
 				unsigned short* pixelList = new unsigned short[data_length];
+				memcpy(boundImg16.data, pixelList, data_length);
 
-				unsigned short *moving_pixelList = pixelList ;
+				//unsigned short *moving_pixelList = pixelList ;
 
-				for (int x = 0; x < width; x++) {
-					for (int y = 0; y < height; y++) {
-						//pixelList[x + y * bound.size().width] = boundImg16.at<unsigned short>(y, x);
-						*moving_pixelList = boundImg16.at<unsigned short> (y, x);
-						moving_pixelList++ ;
+				//for (int x = 0; x < width; x++) {
+				//	for (int y = 0; y < height; y++) {
+				//		//pixelList[x + y * bound.size().width] = boundImg16.at<unsigned short>(y, x);
+				//		*moving_pixelList = boundImg16.at<unsigned short> (y, x);
+				//		moving_pixelList++ ;
 
-					}
-				}
+				//	}
+				//}
 
 				//Execute histogram
 				hist->insert_histogram_data (pixelList, data_length);
@@ -248,7 +249,7 @@ int main (int argc, char** argv)
 		//rgbcap.write(countour_out);
 		//depthcap.write(tri_channel_depth_8u);
 
-		int key = cv::waitKey (30);
+		int key = cv::waitKey (10);
 		if (key == 27) {
 			return 0;
 		} else if (key == ' ') {
@@ -260,7 +261,7 @@ int main (int argc, char** argv)
 
 
 #if(DETAILS)
-		imshow ("Depth", *sensor->largeDepthCV * 20);
+		imshow ("Depth", *sensor->largeDepthCV);
 #endif
 
 		// cv::waitKey(1);
