@@ -11,6 +11,7 @@
 #include <opencv2/opencv.hpp>
 #include <Median.hpp>
 #include <iostream>
+#include <LoadedVideo.hpp>
 
 #include <librealsense/rs.hpp>
 
@@ -29,28 +30,25 @@ int main (int argc, char** argv)
 	//VideoWriter rgbcap;
 	//VideoWriter depthcap;
 
-	if (argc < 2) {
-		std::cerr << "Please specify slider save file directory" << std::endl;
+	if (argc < 3) {
+		std::cerr << "Usage: " << argv[0] << " <Slider save dir> <Video file dir>" << std::endl;
 	}
 
 	Sliders* interface = new Sliders (!HEADLESS, argv[1]);
 
 	cv::waitKey (30);
 
-	//bgrmatCV = new Mat (1080, 1920, CV_8UC3);
-	//		rgbmatCV = new Mat (1080, 1920, CV_8UC3);
-	//		depthmatCV = new Mat (360, 480, CV_16UC1);
-	//		registeredCV = new Mat (1080, 1920, CV_8UC3); 
-	//		largeDepthCV = new Mat (1080, 1920, CV_16UC1); 
-	Realsense *sensor = new Realsense(
-			640,				//depth_width,			 
-			480,				//depth_height,			
-			30,				//depth_framerate,	
-			1920,				//bgr_width,			
-			1080,				//bgr_height,			 
-			30,				//bgr_framerate,		
-			"2391016026"	//serial						
-			);
+	LocadedVideo *sensor = new LoadedVideo(argv[2]);
+
+	//Realsense *sensor = new Realsense(
+	//		640,				//depth_width,
+	//		480,				//depth_height,
+	//		30,				//depth_framerate,
+	//		1920,				//bgr_width,
+	//		1080,				//bgr_height,
+	//		30,				//bgr_framerate,
+	//		"2391016026"	//serial
+	//		);
 
 	// Set up contour info
 	vector<vector<Point> > contours;
@@ -75,8 +73,6 @@ int main (int argc, char** argv)
 	Median *median_filter = new Median (10, default_value);
 
 	sensor->GrabFrames();
-	//rgbcap.open("rgbcap.avi", VideoWriter::fourcc('M','J','P','G'), 10, (*sensor->rgbmatCV).size(), true);
-	//depthcap.open("depth.avi", VideoWriter::fourcc('M','J','P','G'), 10, (*sensor->largeDepthCV).size(), true);
 
 	while (true)  /*if (false)*/ {
 		//if (false) { //Disable everything
@@ -128,13 +124,32 @@ int main (int argc, char** argv)
 
 		// Make some borders for the image as to make the contour detector not fail to get objects touching it
 		line (
-				kernel_filtered_final, Point (0, 0), Point (kernel_filtered_final.size().width, 0), Scalar (255, 255, 255), 5);
-		line (kernel_filtered_final, Point (0, 0), Point (0, kernel_filtered_final.size().height), Scalar (255, 255, 255),
-				5);
-		line (kernel_filtered_final, Point (kernel_filtered_final.size().width, kernel_filtered_final.size().height),
-				Point (kernel_filtered_final.size().width, 0), Scalar (255, 255, 255), 5);
-		line (kernel_filtered_final, Point (kernel_filtered_final.size().width, kernel_filtered_final.size().height),
-				Point (0, kernel_filtered_final.size().height), Scalar (255, 255, 255), 5);
+				kernel_filtered_final,
+				Point (0, 0),
+				Point (kernel_filtered_final.size().width, 0),
+				Scalar (255, 255, 255),
+				5
+			  );
+		line (
+				kernel_filtered_final,
+				Point (0, 0),
+				Point (0, kernel_filtered_final.size().height),
+				Scalar (255, 255, 255),
+				5
+			  );
+		line (
+				kernel_filtered_final,
+				Point (kernel_filtered_final.size().width, kernel_filtered_final.size().height),
+				Point (kernel_filtered_final.size().width, 0),
+				Scalar (255, 255, 255),
+				5
+			  );
+		line (
+				kernel_filtered_final,
+				Point (kernel_filtered_final.size().width, kernel_filtered_final.size().height), Point (0, kernel_filtered_final.size().height),
+				Scalar (255, 255, 255),
+				5
+			  );
 
 
 #if(DETAILS)
@@ -187,7 +202,6 @@ int main (int argc, char** argv)
 				}
 
 				//Execute histogram
-
 				hist->insert_histogram_data (pixelList, data_length);
 				int value = hist->take_percentile (10);
 
@@ -203,7 +217,7 @@ int main (int argc, char** argv)
 					median_filter->insert_median_data (value);
 					brocfound++;
 				} else {
-					//	median_filter->insert_median_data ((int) default_value);
+					median_filter->insert_median_data ((int) default_value);
 				}
 
 			}
@@ -229,14 +243,14 @@ int main (int argc, char** argv)
 
 		//rgbcap.write(countour_out);
 		//depthcap.write(tri_channel_depth_8u);
-		
+
 		if (cv::waitKey (30) == 27) {
 			return 0;
 		}
 #endif
 		cout << final_value << endl;
 
-		
+
 
 #if(DETAILS)
 		imshow ("Depth", *sensor->largeDepthCV * 20);
