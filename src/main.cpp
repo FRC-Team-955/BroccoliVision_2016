@@ -38,7 +38,9 @@ int main (int argc, char** argv)
 
 	Sliders* interface = new Sliders (!HEADLESS, argv[1]);
 
+#if !HEADLESS
 	cv::waitKey (30);
+#endif
 
 	LoadedVideo *sensor = new LoadedVideo(argv[2]);
 
@@ -78,8 +80,19 @@ int main (int argc, char** argv)
 
 	bool skip = false;
 
-	while (true)  /*if (false)*/ {
-		//if (false) { //Disable everything
+#if HEADLESS
+		Mat open_element =
+			getStructuringElement (0, Size (2 * interface->open_slider + 1, 2 * interface->open_slider + 1),
+					Point (interface->open_slider, interface->open_slider));
+		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_OPEN, open_element);
+		Mat close_element =
+			getStructuringElement (0, Size (2 * interface->close_slider + 1, 2 * interface->close_slider + 1),
+					Point (interface->close_slider, interface->close_slider));
+		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_CLOSE, close_element);
+#endif
+
+	while (true) {
+		
 		// Tell the *sensor to supply frames
 		sensor->GrabFrames(skip);
 
@@ -117,6 +130,8 @@ int main (int argc, char** argv)
 		bitwise_not (kernel_filtered_final, kernel_filtered_final);
 
 		// Filter out small eddies and areas of detection
+		//TODO: Use a function pointer to determine if this should update by slider or not
+#if !HEADLESS
 		Mat open_element =
 			getStructuringElement (0, Size (2 * interface->open_slider + 1, 2 * interface->open_slider + 1),
 					Point (interface->open_slider, interface->open_slider));
@@ -125,6 +140,7 @@ int main (int argc, char** argv)
 			getStructuringElement (0, Size (2 * interface->close_slider + 1, 2 * interface->close_slider + 1),
 					Point (interface->close_slider, interface->close_slider));
 		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_CLOSE, close_element);
+#endif
 
 		// Make some borders for the image as to make the contour detector not fail to get objects touching it
 		line (

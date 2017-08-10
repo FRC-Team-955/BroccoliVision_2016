@@ -35,20 +35,18 @@ typename T, //real type
 
 		void insert_histogram_data (T* data, size_t data_length) {
 			clear_histogram();
-
 			for (size_t i = 0; i < data_length; i++) {
 				if (data[i] >= min && data[i] <= max) {
 					histogram[data[i] - min]++;
 					data_sum ++;
 				}
 			}
-
 		}
 
 		void insert_histogram_data (cv::Rect* image_ROI, cv::Mat* image) {
 			clear_histogram();
 			T pixel = 0;
-			for (size_t x = image_ROI->x; x < image_ROI->width + image_ROI->x; x++) {
+			for (size_t x = image_ROI->x; x < image_ROI->width + image_ROI->x; x++) { //TODO: Find a faster method
 				for (size_t y = image_ROI->y; y < image_ROI->height + image_ROI->y; y++) {
 					pixel = image->at<T> (y, x); 
 					if (pixel >= min && pixel <= max) {
@@ -65,7 +63,7 @@ typename T, //real type
 			int percentile_max = ceil ( ((float) percentile / 100.0f) * (float) data_sum);
 			size_t bin_number = 0;
 
-			while (accumulator < percentile_max && bin_number < (max - min)) {
+			while (accumulator < percentile_max && bin_number < range) {
 				accumulator += *histogram_start_copy;
 				histogram_start_copy++;
 				bin_number++;
