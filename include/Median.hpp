@@ -1,44 +1,51 @@
+#ifndef MEDIAN_HPP
+#define MEDIAN_HPP
 #include <cmath>
 #include <stdio.h>
 #include <deque>
+#include <algorithm>
+#include <type_traits>
 
-using namespace std;
-
+template<
+    typename T, //real type
+    typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type
+>
 class Median
 {
 	private:
-		std::deque<unsigned short> median_stack;
+		std::deque<T> median_stack;
 		size_t max_stack_length;
-		unsigned short default_value;
+		T default_value;
 		
 	public:
-		Median (size_t max_stack_length, double default_value) {
+		~Median() {
+		}
+
+		Median (size_t max_stack_length, T default_value) {
 			this->max_stack_length = max_stack_length;
 			this->default_value = default_value;
 		}
-		
-		void insert_median_data (unsigned short data) {
+
+		//TODO: Make this a pointer
+		void insert_median_data (T data) {
 			median_stack.push_front (data);
-			
+
 			if (median_stack.size() > max_stack_length) {
 				median_stack.pop_back();
 			}
 		}
-		
-		unsigned short compute_median () {							
+
+		T compute_median () {							
 			if (median_stack.size() != 0)
 			{
-				std::deque<unsigned short> median_stack_copy = median_stack;
+				std::deque<T> median_stack_copy = median_stack;
 				std::sort (median_stack_copy.begin(), median_stack_copy.end());
 				return median_stack_copy[median_stack_copy.size() / 2];
 			} 
 			else 
 			{
-				return (int)default_value;
+				return default_value;
 			}
 		}
-		
-		~Median() {
-		
-		}
 };
+#endif

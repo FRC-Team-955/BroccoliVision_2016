@@ -2,6 +2,7 @@
 #define HEADLESS false
 #define DETAILS true
 
+#include <vector>
 #include <RealSense.hpp>
 #include <Sliders.hpp>
 #include <cmath>
@@ -52,12 +53,12 @@ int main (int argc, char** argv)
 	//		);
 
 	// Set up contour info
-	vector<vector<Point> > contours;
-	vector<Vec4i> hierarchy;
+	std::vector<std::vector<Point> > contours;
+	std::vector<Vec4i> hierarchy;
 
 	// Set up the image vars
 	Mat hsv_threshold, kernel_out, kernel_filtered_final, countour_out;
-	vector <Mat> split_colors (3);
+	std::vector <Mat> split_colors (3);
 
 	Mat Grey, Kinect_RGB_Copy;
 
@@ -68,10 +69,10 @@ int main (int argc, char** argv)
 	double default_value = 1300.00;
 
 	//Histogram settings
-	Histogram *hist = new Histogram (200, 2000);
+	Histogram <unsigned short> *hist = new Histogram <unsigned short> (10, 8000);
 
 	//Median Filter
-	Median *median_filter = new Median (10, default_value);
+	Median <unsigned short> *median_filter = new Median <unsigned short> (10, default_value);
 
 	sensor->GrabFrames(false);
 
@@ -185,32 +186,8 @@ int main (int argc, char** argv)
 				Mat boundImg16;
 				boundImg.convertTo (boundImg16, CV_16UC1, 1.0);
 
-				//Flatten the pixels into a single dimension array to be put into a histogram
-				int width = bound.size().width;
-				int height = bound.size().height;
-
-				size_t data_length = (width * height) ;
-
-				//TODO: Replace this shitty code with a memcpy!!!
-				unsigned short* pixelList = new unsigned short[data_length];
-				memcpy(boundImg16.data, pixelList, data_length);
-
-				//unsigned short *moving_pixelList = pixelList ;
-
-				//for (int x = 0; x < width; x++) {
-				//	for (int y = 0; y < height; y++) {
-				//		//pixelList[x + y * bound.size().width] = boundImg16.at<unsigned short>(y, x);
-				//		*moving_pixelList = boundImg16.at<unsigned short> (y, x);
-				//		moving_pixelList++ ;
-
-				//	}
-				//}
-
-				//Execute histogram
-				hist->insert_histogram_data (pixelList, data_length);
+				hist->insert_histogram_data (&bound, &boundImg);
 				int value = hist->take_percentile (10);
-
-				delete[] pixelList;
 
 #if(!HEADLESS)
 				putText (countour_out,(hack::to_string (value)+"mm").c_str(), addPoints (center, Point (-50, -150)),
@@ -241,27 +218,19 @@ int main (int argc, char** argv)
 				FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 128), 10);
 		imshow ("Contours", countour_out);
 
-		//Mat tri_channel_depth;
-		//Mat tri_channel_depth_8u;
-		//cvtColor(*sensor->largeDepthCV / 6, tri_channel_depth, CV_GRAY2RGB);
-		//tri_channel_depth.convertTo(tri_channel_depth_8u, CV_8U);
-
-		//rgbcap.write(countour_out);
-		//depthcap.write(tri_channel_depth_8u);
-
-		int key = cv::waitKey (10);
+		int key = cv::waitKey (1);
 		if (key == 27) {
 			return 0;
 		} else if (key == ' ') {
 			skip = !skip;
 		}
 #endif
-		cout << final_value << endl;
+		std::cout << final_value << std::endl;
 
 
 
 #if(DETAILS)
-		imshow ("Depth", *sensor->largeDepthCV);
+		imshow ("Depth", *sensor->largeDepthCV * 4);
 #endif
 
 		// cv::waitKey(1);
