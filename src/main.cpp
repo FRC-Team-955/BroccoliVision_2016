@@ -59,7 +59,7 @@ int main (int argc, char** argv)
 	std::vector<Vec4i> hierarchy;
 
 	// Set up the image vars
-	Mat hsv_threshold, kernel_out, kernel_filtered_final, countour_out;
+	Mat hsv_threshold, kernel_out, kernel_filtered_final, contour_out;
 	std::vector <Mat> split_colors (3);
 
 	Mat Grey, Kinect_RGB_Copy;
@@ -184,7 +184,7 @@ int main (int argc, char** argv)
 				Point (0, 0)); // RETR_CCOMP = Fill holes, KEEP THIS!!
 
 
-		(*sensor->bgrmatCV).copyTo (countour_out);
+		(*sensor->bgrmatCV).copyTo (contour_out);
 
 		unsigned int contsize = contours.size();
 
@@ -197,7 +197,7 @@ int main (int argc, char** argv)
 			if (contourArea (contours[i]) > interface->area_slider) {
 				Rect bound = cv::boundingRect (contours[i]);
 				// bound -= Size(30, 30);
-				rectangle (countour_out, bound.tl(), bound.br(), Scalar (255, 255, 0), 2);
+				rectangle (contour_out, bound.tl(), bound.br(), Scalar (255, 255, 0), 2);
 				Mat boundImg = (*sensor->largeDepthCV) (bound);
 				Mat boundImg16;
 				boundImg.convertTo (boundImg16, CV_16UC1, 1.0);
@@ -206,12 +206,12 @@ int main (int argc, char** argv)
 				int value = hist->take_percentile (10);
 
 #if(!HEADLESS)
-				putText (countour_out,(hack::to_string (value)+"mm").c_str(), addPoints (center, Point (-50, -150)),
+				putText (contour_out,(hack::to_string (value)+"mm").c_str(), addPoints (center, Point (-50, -150)),
 						FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 255),10);
 #endif
 
 				if (interface->broc_roi.contains (center) && value > hist->min && value < hist->max) {
-					drawContours (countour_out, contours, i, Scalar (0, 0, 255), 2, 8, hierarchy, 0, Point());
+					drawContours (contour_out, contours, i, Scalar (0, 0, 255), 2, 8, hierarchy, 0, Point());
 					median_filter->insert_median_data (value);
 					brocfound++;
 				} else {
@@ -226,13 +226,13 @@ int main (int argc, char** argv)
 			std::cerr << "No countours" << std::endl;
 		}
 
-		rectangle (countour_out, interface->broc_roi, Scalar (0,128,255), 3, 8, 0);
+		rectangle (contour_out, interface->broc_roi, Scalar (0,128,255), 3, 8, 0);
 		int final_value = median_filter->compute_median();
 
 #if(!HEADLESS)
-		putText (countour_out, (hack::to_string (final_value)+"mm").c_str(), Point (0,70),
+		putText (contour_out, (hack::to_string (final_value)+"mm").c_str(), Point (0,70),
 				FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 128), 10);
-		imshow ("Contours", countour_out);
+		imshow ("Contours", contour_out);
 
 		int key = cv::waitKey (1);
 		if (key == 27) {
