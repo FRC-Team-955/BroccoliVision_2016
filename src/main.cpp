@@ -1,4 +1,4 @@
-//OH GOD THIS CODE NEEDS REFACTORING FOR THE
+//TODO: Add masking
 #define HEADLESS false
 #define DETAILS true
 
@@ -16,6 +16,14 @@
 
 #include <librealsense/rs.hpp>
 
+//TODO: Add sliders/config entries for these!!
+#define HISTOGRAM_PERCENTILE 10 //10th percentile
+
+#define DEPTH_LOWER_BOUND 10
+#define DEPTH_UPPER_BOUND 8000
+
+#define DEFAULT_OUTPUT 1300.00
+
 using namespace cv;
 
 Point addPoints (Point a, Point b)
@@ -28,9 +36,6 @@ Point addPoints (Point a, Point b)
 
 int main (int argc, char** argv)
 {
-	//VideoWriter rgbcap;
-	//VideoWriter depthcap;
-
 	if (argc < 3) {
 		std::cerr << "Usage: " << argv[0] << " <Slider save dir> <Video file dir>" << std::endl;
 		return -1;
@@ -68,13 +73,12 @@ int main (int argc, char** argv)
 	Mat kernel = Mat::ones (3, 3, CV_32F);
 	kernel.at<float> (1, 1) = -8.0f;
 
-	double default_value = 1300.00;
 
 	//Histogram settings
-	Histogram <unsigned short> *hist = new Histogram <unsigned short> (10, 8000);
+	Histogram <unsigned short> *hist = new Histogram <unsigned short> (DEPTH_UPPER_BOUND, DEPTH_UPPER_BOUND);
 
 	//Median Filter
-	Median <unsigned short> *median_filter = new Median <unsigned short> (10, default_value);
+	Median <unsigned short> *median_filter = new Median <unsigned short> (10, DEFAULT_OUTPUT);
 
 	sensor->GrabFrames(false);
 
@@ -203,26 +207,26 @@ int main (int argc, char** argv)
 				boundImg.convertTo (boundImg16, CV_16UC1, 1.0);
 
 				hist->insert_histogram_data (&bound, &boundImg);
-				int value = hist->take_percentile (10);
+				int value = hist->take_percentile (HISTOGRAM_PERCENTILE);
 
 #if(!HEADLESS)
 				putText (contour_out,(hack::to_string (value)+"mm").c_str(), addPoints (center, Point (-50, -150)),
 						FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 255),10);
 #endif
 
-				if (interface->broc_roi.contains (center) && value > hist->min && value < hist->max) {
+				if (interface->broc_roi.contains (center) && value > DEPTH_UPPER_BOUND && value < DEPTH_LOWER_BOUND) {
 					drawContours (contour_out, contours, i, Scalar (0, 0, 255), 2, 8, hierarchy, 0, Point());
 					median_filter->insert_median_data (value);
 					brocfound++;
 				} else {
-					median_filter->insert_median_data ((int) default_value);
+					median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
 				}
 
 			}
 		}
 
 		if (contsize == 0 || brocfound == 0) {
-			median_filter->insert_median_data ((int) default_value);
+			median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
 			std::cerr << "No countours" << std::endl;
 		}
 
