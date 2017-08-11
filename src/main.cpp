@@ -17,7 +17,7 @@
 #include <librealsense/rs.hpp>
 
 //TODO: Add sliders/config entries for these!!
-#define HISTOGRAM_PERCENTILE 10 //10th percentile
+#define HISTOGRAM_PERCENTILE 80 //10th percentile
 
 #define DEPTH_LOWER_BOUND 10
 #define DEPTH_UPPER_BOUND 8000
