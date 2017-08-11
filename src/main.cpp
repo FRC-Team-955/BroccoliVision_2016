@@ -1,6 +1,6 @@
 //TODO: Add masking
 #define HEADLESS false
-#define DETAILS true
+#define DETAILS false
 
 #include <vector>
 #include <RealSense.hpp>
@@ -64,7 +64,7 @@ int main (int argc, char** argv)
 	std::vector<Vec4i> hierarchy;
 
 	// Set up the image vars
-	Mat hsv_threshold, kernel_out, kernel_filtered_final, contour_out;
+	Mat hsv_threshold, kernel_out, kernel_filtered_final, contour_out, canny_out;
 	std::vector <Mat> split_colors (3);
 
 	Mat Grey, Kinect_RGB_Copy;
@@ -75,7 +75,7 @@ int main (int argc, char** argv)
 
 
 	//Histogram settings
-	Histogram <unsigned short> *hist = new Histogram <unsigned short> (DEPTH_UPPER_BOUND, DEPTH_UPPER_BOUND);
+	Histogram <unsigned short> *hist = new Histogram <unsigned short> (DEPTH_LOWER_BOUND, DEPTH_UPPER_BOUND);
 
 	//Median Filter
 	Median <unsigned short> *median_filter = new Median <unsigned short> (10, DEFAULT_OUTPUT);
@@ -85,18 +85,16 @@ int main (int argc, char** argv)
 	bool skip = false;
 
 #if HEADLESS
-		Mat open_element =
-			getStructuringElement (0, Size (2 * interface->open_slider + 1, 2 * interface->open_slider + 1),
-					Point (interface->open_slider, interface->open_slider));
-		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_OPEN, open_element);
-		Mat close_element =
-			getStructuringElement (0, Size (2 * interface->close_slider + 1, 2 * interface->close_slider + 1),
-					Point (interface->close_slider, interface->close_slider));
-		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_CLOSE, close_element);
+	Mat open_element =
+		getStructuringElement (0, Size (2 * interface->open_slider + 1, 2 * interface->open_slider + 1),
+				Point (interface->open_slider, interface->open_slider));
+	Mat close_element =
+		getStructuringElement (0, Size (2 * interface->close_slider + 1, 2 * interface->close_slider + 1),
+				Point (interface->close_slider, interface->close_slider));
 #endif
 
 	while (true) {
-		
+
 		// Tell the *sensor to supply frames
 		sensor->GrabFrames(skip);
 
@@ -108,7 +106,7 @@ int main (int argc, char** argv)
 				Scalar (interface->hue_slider_upper, interface->sat_slider_upper, interface->val_slider_upper),
 				hsv_threshold);
 
-#if(DETAILS)
+#if DETAILS && !HEADLESS
 		imshow ("HSV", hsv_threshold);
 #endif
 		// Split the bgr into it's component channels
@@ -120,11 +118,11 @@ int main (int argc, char** argv)
 		// Filter out negative results on the kernel output
 		threshold (kernel_out, kernel_out, interface->thresh_slider, 255, THRESH_BINARY); // Threshhold the Kernel image
 
-#if(DETAILS)
+#if DETAILS && !HEADLESS
 		imshow ("Kernel", kernel_out);
 #endif
 
-		// Clear the kernel image
+		// Clear the kernel afterimage of the last rerun
 		kernel_filtered_final.setTo (Scalar (0, 0, 0, 0));
 
 		// Filter the kenel image to remove things that are not within the HSV threshold
@@ -133,18 +131,19 @@ int main (int argc, char** argv)
 		// Invert the image to ready it for morphologicals
 		bitwise_not (kernel_filtered_final, kernel_filtered_final);
 
-		// Filter out small eddies and areas of detection
 		//TODO: Use a function pointer to determine if this should update by slider or not
-#if !HEADLESS
+#if !HEADLESS //Live update
 		Mat open_element =
 			getStructuringElement (0, Size (2 * interface->open_slider + 1, 2 * interface->open_slider + 1),
 					Point (interface->open_slider, interface->open_slider));
-		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_OPEN, open_element);
 		Mat close_element =
 			getStructuringElement (0, Size (2 * interface->close_slider + 1, 2 * interface->close_slider + 1),
 					Point (interface->close_slider, interface->close_slider));
-		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_CLOSE, close_element);
 #endif
+		
+		// Filter out small eddies and areas of detection
+		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_OPEN, open_element);
+		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_CLOSE, close_element);
 
 		// Make some borders for the image as to make the contour detector not fail to get objects touching it
 		line (
@@ -176,48 +175,67 @@ int main (int argc, char** argv)
 			  );
 
 
-#if(DETAILS)
+#if DETAILS && !HEADLESS
 		imshow ("Pre-Canny", kernel_filtered_final);
 #endif
 
 		// Canny edge detector on the image
-		Canny (kernel_filtered_final, kernel_filtered_final, interface->canny_slider, interface->canny_slider * 2, 3);
+		Canny (kernel_filtered_final, canny_out, interface->canny_slider, interface->canny_slider * 2, 3);
 
 		// Find the edges of the broccoli
-		findContours (kernel_filtered_final, contours, hierarchy, RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE,
+		findContours (canny_out, contours, hierarchy, RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE,
 				Point (0, 0)); // RETR_CCOMP = Fill holes, KEEP THIS!!
 
+		//Fix after morph TODO: Fix all of the steps leading up to this so you don't have to at all
+		bitwise_not (kernel_filtered_final, kernel_filtered_final); 
 
+		//Copy the image to a display buffer
+#if !HEADLESS
 		(*sensor->bgrmatCV).copyTo (contour_out);
+#endif
 
-		unsigned int contsize = contours.size();
+		int broccoli_count = 0;
 
-		Point imageCent ((*sensor->largeDepthCV).size().width / 2, (*sensor->largeDepthCV).size().height / 2);
-		int brocfound = 0;
-		for (unsigned int i = 0; i < contsize; i++) {
+		for (unsigned int i = 0; i < contours.size(); i++) { //For each blob...
+
+			//Get the center of the blob
 			Moments moment_set = moments (contours[i], false);
 			Point2f center = Point2f (moment_set.m10 / moment_set.m00, moment_set.m01 / moment_set.m00);
 
-			if (contourArea (contours[i]) > interface->area_slider) {
-				Rect bound = cv::boundingRect (contours[i]);
-				// bound -= Size(30, 30);
-				rectangle (contour_out, bound.tl(), bound.br(), Scalar (255, 255, 0), 2);
-				Mat boundImg = (*sensor->largeDepthCV) (bound);
-				Mat boundImg16;
-				boundImg.convertTo (boundImg16, CV_16UC1, 1.0);
+			//Check if the blob's center is within the range, and that it is large enough 
+			if (contourArea (contours[i]) > interface->area_slider && interface->broc_roi.contains (center)) {
 
-				hist->insert_histogram_data (&bound, &boundImg);
+				//Get the bounding box for this blob
+				Rect bound = cv::boundingRect (contours[i]);
+
+#if !HEADLESS 
+				//Draw the blob's bounding box
+				rectangle (contour_out, bound.tl(), bound.br(), Scalar (255, 255, 0), 2);
+#endif
+				//Cut out the blob from the corresponding area of the depth image
+				Mat depth_cutout = (*sensor->largeDepthCV) (bound);
+
+				//Mask the depth image by the blob's area (Only look at the actual broccoli!
+				Mat depth_masked; 
+				depth_cutout.copyTo(depth_masked, kernel_filtered_final(bound)); //Mask!
+				//imshow("mask", depth_masked * 4);
+
+				//Run the histogram and only capture the percentile
+				hist->insert_histogram_data (&depth_masked);
 				int value = hist->take_percentile (HISTOGRAM_PERCENTILE);
 
-#if(!HEADLESS)
-				putText (contour_out,(hack::to_string (value)+"mm").c_str(), addPoints (center, Point (-50, -150)),
-						FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 255),10);
+
+				if (value > DEPTH_LOWER_BOUND && value < DEPTH_UPPER_BOUND) {
+#if !HEADLESS 
+					//Draw detections
+					putText (contour_out,(hack::to_string (value)+"mm").c_str(), addPoints (center, Point (-50, -150)),
+							FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 255),10);
+					drawContours (contour_out, contours, i, Scalar (0, 0, 255), 2, 8, hierarchy, 0, Point());
 #endif
 
-				if (interface->broc_roi.contains (center) && value > DEPTH_UPPER_BOUND && value < DEPTH_LOWER_BOUND) {
-					drawContours (contour_out, contours, i, Scalar (0, 0, 255), 2, 8, hierarchy, 0, Point());
+					//Median filter the data
 					median_filter->insert_median_data (value);
-					brocfound++;
+					broccoli_count++;
 				} else {
 					median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
 				}
@@ -225,19 +243,25 @@ int main (int argc, char** argv)
 			}
 		}
 
-		if (contsize == 0 || brocfound == 0) {
+		//We didn't find anything. Just fall back on the default, but do it slowly in case we're just skipping a frame.
+		if (contours.size() == 0 || broccoli_count == 0) {
 			median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
-			std::cerr << "No countours" << std::endl;
+			std::cerr << "No contours" << std::endl;
 		}
 
-		rectangle (contour_out, interface->broc_roi, Scalar (0,128,255), 3, 8, 0);
 		int final_value = median_filter->compute_median();
+		std::cout << final_value << std::endl;
 
-#if(!HEADLESS)
+#if !HEADLESS 
+		//Nice display stuff
+		rectangle (contour_out, interface->broc_roi, Scalar (0,128,255), 3, 8, 0);
 		putText (contour_out, (hack::to_string (final_value)+"mm").c_str(), Point (0,70),
 				FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 128), 10);
 		imshow ("Contours", contour_out);
 
+#if DETAILS 
+		imshow ("Depth", *sensor->largeDepthCV * 4);
+#endif
 		int key = cv::waitKey (1);
 		if (key == 27) {
 			return 0;
@@ -245,15 +269,7 @@ int main (int argc, char** argv)
 			skip = !skip;
 		}
 #endif
-		std::cout << final_value << std::endl;
 
-
-
-#if(DETAILS)
-		imshow ("Depth", *sensor->largeDepthCV * 4);
-#endif
-
-		// cv::waitKey(1);
 	}
 
 	return 0;
