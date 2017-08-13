@@ -22,7 +22,7 @@ using namespace cv;
 class LoadedVideo : public VideoInterface
 {
 	private:
-		std::ifstream file_in; 
+		std::ifstream* file_in; 
 		int file_index = 0;
 	public:
 		void GrabFrames (bool skip) ;

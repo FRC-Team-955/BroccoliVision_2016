@@ -17,12 +17,15 @@
 #include <librealsense/rs.hpp>
 
 //TODO: Add sliders/config entries for these!!
-#define HISTOGRAM_PERCENTILE 80 //10th percentile
+#define HISTOGRAM_PERCENTILE 40
 
 #define DEPTH_LOWER_BOUND 10
 #define DEPTH_UPPER_BOUND 8000
 
 #define DEFAULT_OUTPUT 1300.00
+
+#define REALSENSE_CONV_LINE_M 0.123558
+#define REALSENSE_CONV_LINE_B -7.16639
 
 using namespace cv;
 
@@ -36,8 +39,9 @@ Point addPoints (Point a, Point b)
 
 int main (int argc, char** argv)
 {
-	if (argc < 3) {
-		std::cerr << "Usage: " << argv[0] << " <Slider save dir> <Video file dir>" << std::endl;
+	//TODO: Decide on the interface based on the number of args, or take the camera serial number as an arg
+	if (argc < 4) {
+		std::cerr << "Usage: " << argv[0] << " <Slider save dir> <video/realsense> <Video file dir/Serial ID>" << std::endl;
 		return -1;
 	}
 
@@ -47,17 +51,23 @@ int main (int argc, char** argv)
 	cv::waitKey (30);
 #endif
 
-	LoadedVideo *sensor = new LoadedVideo(argv[2]);
+	VideoInterface *sensor;
+	if (!strcmp(argv[2], "video")) {
+		sensor = new LoadedVideo(argv[3]);
+	} else {
+		sensor = new Realsense(
+			640,				//depth_width,
+			480,				//depth_height,
+			30,				//depth_framerate,
+			1920,				//bgr_width,
+			1080,				//bgr_height,
+			30,				//bgr_framerate,
+			argv[3]
+			//"2391016026"	//serial
+			);
 
-	//Realsense *sensor = new Realsense(
-	//		640,				//depth_width,
-	//		480,				//depth_height,
-	//		30,				//depth_framerate,
-	//		1920,				//bgr_width,
-	//		1080,				//bgr_height,
-	//		30,				//bgr_framerate,
-	//		"2391016026"	//serial
-	//		);
+	}
+
 
 	// Set up contour info
 	std::vector<std::vector<Point> > contours;
@@ -140,7 +150,7 @@ int main (int argc, char** argv)
 			getStructuringElement (0, Size (2 * interface->close_slider + 1, 2 * interface->close_slider + 1),
 					Point (interface->close_slider, interface->close_slider));
 #endif
-		
+
 		// Filter out small eddies and areas of detection
 		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_OPEN, open_element);
 		morphologyEx (kernel_filtered_final, kernel_filtered_final, MORPH_CLOSE, close_element);
@@ -187,7 +197,7 @@ int main (int argc, char** argv)
 				Point (0, 0)); // RETR_CCOMP = Fill holes, KEEP THIS!!
 
 		//Fix after morph TODO: Fix all of the steps leading up to this so you don't have to at all
-		bitwise_not (kernel_filtered_final, kernel_filtered_final); 
+		bitwise_not (kernel_filtered_final, kernel_filtered_final);
 
 		//Copy the image to a display buffer
 #if !HEADLESS
@@ -202,13 +212,13 @@ int main (int argc, char** argv)
 			Moments moment_set = moments (contours[i], false);
 			Point2f center = Point2f (moment_set.m10 / moment_set.m00, moment_set.m01 / moment_set.m00);
 
-			//Check if the blob's center is within the range, and that it is large enough 
+			//Check if the blob's center is within the range, and that it is large enough
 			if (contourArea (contours[i]) > interface->area_slider && interface->broc_roi.contains (center)) {
 
 				//Get the bounding box for this blob
 				Rect bound = cv::boundingRect (contours[i]);
 
-#if !HEADLESS 
+#if !HEADLESS
 				//Draw the blob's bounding box
 				rectangle (contour_out, bound.tl(), bound.br(), Scalar (255, 255, 0), 2);
 #endif
@@ -216,7 +226,7 @@ int main (int argc, char** argv)
 				Mat depth_cutout = (*sensor->largeDepthCV) (bound);
 
 				//Mask the depth image by the blob's area (Only look at the actual broccoli!
-				Mat depth_masked; 
+				Mat depth_masked;
 				depth_cutout.copyTo(depth_masked, kernel_filtered_final(bound)); //Mask!
 				//imshow("mask", depth_masked * 4);
 
@@ -226,9 +236,9 @@ int main (int argc, char** argv)
 
 
 				if (value > DEPTH_LOWER_BOUND && value < DEPTH_UPPER_BOUND) {
-#if !HEADLESS 
+#if !HEADLESS
 					//Draw detections
-					putText (contour_out,(hack::to_string (value)+"mm").c_str(), addPoints (center, Point (-50, -150)),
+					putText (contour_out,(hack::to_string (REALSENSE_CONV_LINE_B + ((float)value * REALSENSE_CONV_LINE_M))+"mm").c_str(), addPoints (center, Point (-50, -150)),
 							FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 255),10);
 					drawContours (contour_out, contours, i, Scalar (0, 0, 255), 2, 8, hierarchy, 0, Point());
 #endif
@@ -237,7 +247,7 @@ int main (int argc, char** argv)
 					median_filter->insert_median_data (value);
 					broccoli_count++;
 				} else {
-					median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
+					//median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
 				}
 
 			}
@@ -245,21 +255,23 @@ int main (int argc, char** argv)
 
 		//We didn't find anything. Just fall back on the default, but do it slowly in case we're just skipping a frame.
 		if (contours.size() == 0 || broccoli_count == 0) {
-			median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
+			//median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
 			std::cerr << "No contours" << std::endl;
 		}
 
-		int final_value = median_filter->compute_median();
+#define REALSENSE_CONV_LINE_M 0.123558
+#define REALSENSE_CONV_LINE_B -7.16639
+		int final_value = REALSENSE_CONV_LINE_B + ((float)median_filter->compute_median() * REALSENSE_CONV_LINE_M);
 		std::cout << final_value << std::endl;
 
-#if !HEADLESS 
+#if !HEADLESS
 		//Nice display stuff
 		rectangle (contour_out, interface->broc_roi, Scalar (0,128,255), 3, 8, 0);
 		putText (contour_out, (hack::to_string (final_value)+"mm").c_str(), Point (0,70),
 				FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 128), 10);
 		imshow ("Contours", contour_out);
 
-#if DETAILS 
+#if DETAILS
 		imshow ("Depth", *sensor->largeDepthCV * 4);
 #endif
 		int key = cv::waitKey (1);
