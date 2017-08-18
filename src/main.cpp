@@ -1,6 +1,6 @@
 //TODO: Add masking
 #define HEADLESS false
-#define DETAILS false
+#define DETAILS true
 
 #include <vector>
 #include <RealSense.hpp>
