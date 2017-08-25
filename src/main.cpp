@@ -13,6 +13,7 @@
 #include <Median.hpp>
 #include <iostream>
 #include <LoadedVideo.hpp>
+#include <stdlib.h>
 
 #include <librealsense/rs.hpp>
 
@@ -68,6 +69,8 @@ int main (int argc, char** argv)
 
 	}
 
+	system("stty -F /dev/ttyACM0 cs8 115200 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts");
+   FILE* fptr = fopen("/dev/ttyACM0", "w");
 
 	// Set up contour info
 	std::vector<std::vector<Point> > contours;
@@ -262,6 +265,7 @@ int main (int argc, char** argv)
 #define REALSENSE_CONV_LINE_M 0.123558
 #define REALSENSE_CONV_LINE_B -7.16639
 		int final_value = REALSENSE_CONV_LINE_B + ((float)median_filter->compute_median() * REALSENSE_CONV_LINE_M);
+		fprintf (fptr, "%d\n", final_value);
 		std::cout << final_value << std::endl;
 
 #if !HEADLESS
