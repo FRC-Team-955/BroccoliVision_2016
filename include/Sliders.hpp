@@ -65,7 +65,7 @@ class Sliders {
 			//}
 
 			if (showUI) {
-				Mat sliderWidth(1, 1920 / 1, 0); //HACK to make a separate window for the sliders with a custom width
+				Mat sliderWidth(1, 500 / 1, 0); //HACK to make a separate window for the sliders with a custom width
 				namedWindow("Sliders", CV_WINDOW_AUTOSIZE);
 				imshow("Sliders", sliderWidth);
 				cvCreateTrackbar2("Hue Lw",   "Sliders",   &hue_slider_lower,   179 ,   on_trackbar,   this);

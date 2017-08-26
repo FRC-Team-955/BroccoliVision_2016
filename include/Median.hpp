@@ -47,5 +47,9 @@ class Median
 				return default_value;
 			}
 		}
+
+		bool is_populated () {
+			return median_stack.size() > 0;
+		}
 };
 #endif

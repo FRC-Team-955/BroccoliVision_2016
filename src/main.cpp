@@ -1,4 +1,3 @@
-//TODO: Add masking
 #define HEADLESS false
 #define DETAILS true
 
@@ -20,13 +19,23 @@
 //TODO: Add sliders/config entries for these!!
 #define HISTOGRAM_PERCENTILE 40
 
+//Bounds on depth
 #define DEPTH_LOWER_BOUND 10
 #define DEPTH_UPPER_BOUND 8000
 
-#define DEFAULT_OUTPUT 1300.00
-
+//Convert realsense units to mm with this linear function
 #define REALSENSE_CONV_LINE_M 0.123558
 #define REALSENSE_CONV_LINE_B -7.16639
+
+//Rig params
+#define CAMERA_TO_SAW_DIST_MM 381
+#define PRODUCT_HEIGHT_MM 152
+#define CAMERA_TO_CROWN_DIST_DESIRED_MM (CAMERA_TO_SAW_DIST_MM - PRODUCT_HEIGHT_MM)
+
+//What we output when we don't know what to do
+#define DEFAULT_OUTPUT 200
+
+bool have_we_started = false;
 
 using namespace cv;
 
@@ -57,20 +66,20 @@ int main (int argc, char** argv)
 		sensor = new LoadedVideo(argv[3]);
 	} else {
 		sensor = new Realsense(
-			640,				//depth_width,
-			480,				//depth_height,
-			30,				//depth_framerate,
-			1920,				//bgr_width,
-			1080,				//bgr_height,
-			30,				//bgr_framerate,
-			argv[3]
-			//"2391016026"	//serial
-			);
+				640,				//depth_width,
+				480,				//depth_height,
+				30,				//depth_framerate,
+				1920,				//bgr_width,
+				1080,				//bgr_height,
+				30,				//bgr_framerate,
+				argv[3]
+				//"2391016026"	//serial
+				);
 
 	}
 
 	system("stty -F /dev/ttyACM0 cs8 115200 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts");
-   FILE* fptr = fopen("/dev/ttyACM0", "w");
+	FILE* fptr = fopen("/dev/ttyACM0", "w");
 
 	// Set up contour info
 	std::vector<std::vector<Point> > contours;
@@ -165,27 +174,27 @@ int main (int argc, char** argv)
 				Point (kernel_filtered_final.size().width, 0),
 				Scalar (255, 255, 255),
 				5
-			  );
+		     );
 		line (
 				kernel_filtered_final,
 				Point (0, 0),
 				Point (0, kernel_filtered_final.size().height),
 				Scalar (255, 255, 255),
 				5
-			  );
+		     );
 		line (
 				kernel_filtered_final,
 				Point (kernel_filtered_final.size().width, kernel_filtered_final.size().height),
 				Point (kernel_filtered_final.size().width, 0),
 				Scalar (255, 255, 255),
 				5
-			  );
+		     );
 		line (
 				kernel_filtered_final,
 				Point (kernel_filtered_final.size().width, kernel_filtered_final.size().height), Point (0, kernel_filtered_final.size().height),
 				Scalar (255, 255, 255),
 				5
-			  );
+		     );
 
 
 #if DETAILS && !HEADLESS
@@ -249,24 +258,25 @@ int main (int argc, char** argv)
 					//Median filter the data
 					median_filter->insert_median_data (value);
 					broccoli_count++;
-				} else {
-					//median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
 				}
-
 			}
 		}
 
 		//We didn't find anything. Just fall back on the default, but do it slowly in case we're just skipping a frame.
 		if (contours.size() == 0 || broccoli_count == 0) {
-			//median_filter->insert_median_data ((int) DEFAULT_OUTPUT);
 			std::cerr << "No contours" << std::endl;
+		} 
+		int final_height = REALSENSE_CONV_LINE_B + ((float)median_filter->compute_median() * REALSENSE_CONV_LINE_M); //Adjust for realsense to mm and compute median
+		int final_value = final_height - CAMERA_TO_CROWN_DIST_DESIRED_MM; //Adjust for machinery
+
+		if (median_filter->is_populated()) {
+			fprintf (fptr, "%d\n", final_value);
+		} else {
+			fprintf (fptr, "%d\n", 0);
+			std::cout << "We haven't seen anything yet" << std::endl;
 		}
 
-#define REALSENSE_CONV_LINE_M 0.123558
-#define REALSENSE_CONV_LINE_B -7.16639
-		int final_value = REALSENSE_CONV_LINE_B + ((float)median_filter->compute_median() * REALSENSE_CONV_LINE_M);
-		fprintf (fptr, "%d\n", final_value);
-		std::cout << final_value << std::endl;
+		//std::cout << final_value << std::endl;
 
 #if !HEADLESS
 		//Nice display stuff
