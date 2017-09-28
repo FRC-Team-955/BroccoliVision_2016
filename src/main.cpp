@@ -1,5 +1,5 @@
-#define HEADLESS false
-#define DETAILS true
+#define HEADLESS true
+#define DETAILS false
 
 #include <vector>
 #include <RealSense.hpp>
@@ -28,14 +28,18 @@
 #define REALSENSE_CONV_LINE_B -7.16639
 
 //Rig params
-#define CAMERA_TO_SAW_DIST_MM 381
-#define PRODUCT_HEIGHT_MM 152
+#define CAMERA_TO_SAW_DIST_MM 150
+#define PRODUCT_HEIGHT_MM 0
 #define CAMERA_TO_CROWN_DIST_DESIRED_MM (CAMERA_TO_SAW_DIST_MM - PRODUCT_HEIGHT_MM)
 
 //What we output when we don't know what to do
-#define DEFAULT_OUTPUT 200
+#define DEFAULT_OUTPUT 200 //Only used for when the median filter is empty (VERY RARE)
 
-bool have_we_started = false;
+//What do we write out to the serial port when we want to home the carriage?
+#define HOMING_COMMAND "-32000; 1; 0"
+#define HOMING_KEY "h"
+
+//bool have_we_started = false;
 
 using namespace cv;
 
@@ -58,7 +62,7 @@ int main (int argc, char** argv)
 	Sliders* interface = new Sliders (!HEADLESS, argv[1]);
 
 #if !HEADLESS
-	cv::waitKey (30);
+	cv::waitKey (1);
 #endif
 
 	VideoInterface *sensor;
@@ -80,6 +84,7 @@ int main (int argc, char** argv)
 
 	system("stty -F /dev/ttyACM0 cs8 115200 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts");
 	FILE* fptr = fopen("/dev/ttyACM0", "w");
+	fprintf (fptr, "%s", HOMING_COMMAND);
 
 	// Set up contour info
 	std::vector<std::vector<Point> > contours;
@@ -94,7 +99,6 @@ int main (int argc, char** argv)
 	// Kernel to detect Broccoli pebbling
 	Mat kernel = Mat::ones (3, 3, CV_32F);
 	kernel.at<float> (1, 1) = -8.0f;
-
 
 	//Histogram settings
 	Histogram <unsigned short> *hist = new Histogram <unsigned short> (DEPTH_LOWER_BOUND, DEPTH_UPPER_BOUND);
@@ -174,27 +178,27 @@ int main (int argc, char** argv)
 				Point (kernel_filtered_final.size().width, 0),
 				Scalar (255, 255, 255),
 				5
-		     );
+			  );
 		line (
 				kernel_filtered_final,
 				Point (0, 0),
 				Point (0, kernel_filtered_final.size().height),
 				Scalar (255, 255, 255),
 				5
-		     );
+			  );
 		line (
 				kernel_filtered_final,
 				Point (kernel_filtered_final.size().width, kernel_filtered_final.size().height),
 				Point (kernel_filtered_final.size().width, 0),
 				Scalar (255, 255, 255),
 				5
-		     );
+			  );
 		line (
 				kernel_filtered_final,
 				Point (kernel_filtered_final.size().width, kernel_filtered_final.size().height), Point (0, kernel_filtered_final.size().height),
 				Scalar (255, 255, 255),
 				5
-		     );
+			  );
 
 
 #if DETAILS && !HEADLESS
@@ -250,8 +254,8 @@ int main (int argc, char** argv)
 				if (value > DEPTH_LOWER_BOUND && value < DEPTH_UPPER_BOUND) {
 #if !HEADLESS
 					//Draw detections
-					putText (contour_out,(hack::to_string (REALSENSE_CONV_LINE_B + ((float)value * REALSENSE_CONV_LINE_M))+"mm").c_str(), addPoints (center, Point (-50, -150)),
-							FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 255),10);
+					//putText (contour_out,(hack::to_string (REALSENSE_CONV_LINE_B + ((float)value * REALSENSE_CONV_LINE_M))+"mm").c_str(), addPoints (center, Point (-50, -150)),
+					//		FONT_HERSHEY_COMPLEX_SMALL, 5.0, Scalar (0, 255, 255),10);
 					drawContours (contour_out, contours, i, Scalar (0, 0, 255), 2, 8, hierarchy, 0, Point());
 #endif
 
@@ -271,12 +275,12 @@ int main (int argc, char** argv)
 
 		if (median_filter->is_populated()) {
 			fprintf (fptr, "%d\n", final_value);
-		} else {
-			fprintf (fptr, "%d\n", 0);
-			std::cout << "We haven't seen anything yet" << std::endl;
-		}
+		} /* else {
+			  fprintf (fptr, "%d\n", 0);
+			  std::cout << "We haven't seen anything yet" << std::endl;
+			  }
+			  */
 
-		//std::cout << final_value << std::endl;
 
 #if !HEADLESS
 		//Nice display stuff
@@ -291,6 +295,8 @@ int main (int argc, char** argv)
 		int key = cv::waitKey (1);
 		if (key == 27) {
 			return 0;
+		} else if (key == 'h') {
+			fprintf (fptr, "%s", HOMING_COMMAND);
 		} else if (key == ' ') {
 			skip = !skip;
 		}

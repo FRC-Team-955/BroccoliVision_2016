@@ -10,12 +10,12 @@ PROJECT(BroccoliBot_2016)
 FIND_PACKAGE(OpenCV REQUIRED)
 
 # Manually the librealsense libraries and headers
-FILE(GLOB Realsense_LIBS "/usr/local/lib/x86_64-linux-gnu/librealsense.so")
-#FILE(GLOB Realsense_LIBS "/usr/local/lib/librealsense.so")
+#FILE(GLOB Realsense_LIBS "/usr/local/lib/x86_64-linux-gnu/librealsense.so")
+FILE(GLOB Realsense_LIBS "/usr/local/lib64/librealsense.so")
 INCLUDE_DIRECTORIES("/usr/local/include/librealsense/")
-FILE(GLOB Pugixml_LIBS "/usr/lib/x86_64-linux-gnu/libpugixml.so")
-#FILE(GLOB Pugixml_LIBS "/usr/lib/libpugixml.so")
-INCLUDE_DIRECTORIES("/usr/include/pugixml.hpp")
+#FILE(GLOB Pugixml_LIBS "/usr/lib/x86_64-linux-gnu/libpugixml.so")
+FILE(GLOB Pugixml_LIBS "/usr/lib/libpugixml.so")
+INCLUDE_DIRECTORIES("/usr/local/include/pugixml.hpp")
 
 # Include the include directory for the project 
 INCLUDE_DIRECTORIES(include)
