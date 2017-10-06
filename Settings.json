@@ -1,2 +1,2 @@
 <?xml version="1.0"?>
-<sliders HueLw="18" HueUp="52" SatLw="12" SatUp="224" ValLw="18" ValUp="256" MorphOpen="6" MorphClose="13" Thresh="12" Canny="0" Area="7217" xPos="675" yPos="150" Width="685" Height="866" />
+<sliders HueLw="36" HueUp="131" SatLw="11" SatUp="220" ValLw="49" ValUp="256" MorphOpen="6" MorphClose="13" Thresh="29" Canny="0" Area="9999" xPos="0" yPos="0" Width="1920" Height="1080" />

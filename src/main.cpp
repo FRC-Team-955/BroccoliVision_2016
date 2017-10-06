@@ -1,4 +1,4 @@
-#define HEADLESS true
+#define HEADLESS false
 #define DETAILS false
 
 #include <vector>
@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string>
 #include <Histogram.hpp>
+#include <fstream>
 #include <opencv2/opencv.hpp>
 #include <Median.hpp>
 #include <iostream>
@@ -55,7 +56,7 @@ int main (int argc, char** argv)
 {
 	//TODO: Decide on the interface based on the number of args, or take the camera serial number as an arg
 	if (argc < 4) {
-		std::cerr << "Usage: " << argv[0] << " <Slider save dir> <video/realsense> <Video file dir/Serial ID>" << std::endl;
+		std::cerr << "Usage: " << argv[0] << " <Slider save dir> <video/realsense> <Video file dir/Serial ID> <Optional Video out dir (raw)>" << std::endl;
 		return -1;
 	}
 
@@ -85,6 +86,12 @@ int main (int argc, char** argv)
 	system("stty -F /dev/ttyACM0 cs8 115200 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts");
 	FILE* fptr = fopen("/dev/ttyACM0", "w");
 	fprintf (fptr, "%s", HOMING_COMMAND);
+
+	std::ofstream* video_out; 
+	if (argc > 4) { //We're recording, too!
+		std::cout << "recording!" << std::endl;
+		video_out = new std::ofstream (argv[4], std::ios::binary);
+	}
 
 	// Set up contour info
 	std::vector<std::vector<Point> > contours;
@@ -276,7 +283,6 @@ int main (int argc, char** argv)
 		if (median_filter->is_populated()) {
 			fprintf (fptr, "%d\n", final_value);
 		} /* else {
-			  fprintf (fptr, "%d\n", 0);
 			  std::cout << "We haven't seen anything yet" << std::endl;
 			  }
 			  */
@@ -302,6 +308,10 @@ int main (int argc, char** argv)
 		}
 #endif
 
+		if (argc > 4) {
+			video_out->write((char*)sensor->rgbmatCV->data, DATA_LENGTH_COLOR);	
+			video_out->write((char*)sensor->largeDepthCV->data, DATA_LENGTH_DEPTH);
+		}
 	}
 
 	return 0;
