@@ -78,7 +78,7 @@ class Sliders {
 				cvCreateTrackbar2("Open"  ,   "Sliders",   &open_slider     ,   20  ,   on_trackbar,   this);
 				cvCreateTrackbar2("Close" ,   "Sliders",   &close_slider    ,   20  ,   on_trackbar,   this);
 				cvCreateTrackbar2("Canny" ,   "Sliders",   &canny_slider    ,   20  ,   on_trackbar,   this);
-				cvCreateTrackbar2("Area"  ,   "Sliders",   &area_slider     ,   9999,   on_trackbar,   this);
+				cvCreateTrackbar2("Area"  ,   "Sliders",   &area_slider     ,  99999,   on_trackbar,   this);
 				cvCreateTrackbar2("xPos"  ,   "Sliders",   &broc_roi.x      ,   1920,   on_trackbar,   this);
 				cvCreateTrackbar2("yPos"  ,   "Sliders",   &broc_roi.y      ,   1080,   on_trackbar,   this);
 				cvCreateTrackbar2("Width" ,   "Sliders",   &broc_roi.width  ,   1920,   on_trackbar,   this);

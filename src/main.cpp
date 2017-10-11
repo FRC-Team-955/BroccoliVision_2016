@@ -29,16 +29,15 @@
 #define REALSENSE_CONV_LINE_B -7.16639
 
 //Rig params
-#define CAMERA_TO_SAW_DIST_MM 150
-#define PRODUCT_HEIGHT_MM 0
-#define CAMERA_TO_CROWN_DIST_DESIRED_MM (CAMERA_TO_SAW_DIST_MM - PRODUCT_HEIGHT_MM)
+#define CAMERA_TO_SAW_DIST_MM 483
+#define PRODUCT_HEIGHT_MM 229
 
 //What we output when we don't know what to do
 #define DEFAULT_OUTPUT 200 //Only used for when the median filter is empty (VERY RARE)
 
 //What do we write out to the serial port when we want to home the carriage?
 #define HOMING_COMMAND "-32000; 1; 0"
-#define HOMING_KEY "h"
+#define HOMING_KEY 'h'
 
 //bool have_we_started = false;
 
@@ -85,7 +84,6 @@ int main (int argc, char** argv)
 
 	system("stty -F /dev/ttyACM0 cs8 115200 ignbrk -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke noflsh -ixon -crtscts");
 	FILE* fptr = fopen("/dev/ttyACM0", "w");
-	fprintf (fptr, "%s", HOMING_COMMAND);
 
 	std::ofstream* video_out; 
 	if (argc > 4) { //We're recording, too!
@@ -126,6 +124,8 @@ int main (int argc, char** argv)
 				Point (interface->close_slider, interface->close_slider));
 #endif
 
+
+	fprintf (fptr, "%s", HOMING_COMMAND);
 	while (true) {
 
 		// Tell the *sensor to supply frames
@@ -278,7 +278,7 @@ int main (int argc, char** argv)
 			std::cerr << "No contours" << std::endl;
 		} 
 		int final_height = REALSENSE_CONV_LINE_B + ((float)median_filter->compute_median() * REALSENSE_CONV_LINE_M); //Adjust for realsense to mm and compute median
-		int final_value = final_height - CAMERA_TO_CROWN_DIST_DESIRED_MM; //Adjust for machinery
+		int final_value = (final_height + PRODUCT_HEIGHT_MM) - CAMERA_TO_SAW_DIST_MM; //Adjust for machinery
 
 		if (median_filter->is_populated()) {
 			fprintf (fptr, "%d\n", final_value);
@@ -301,7 +301,7 @@ int main (int argc, char** argv)
 		int key = cv::waitKey (1);
 		if (key == 27) {
 			return 0;
-		} else if (key == 'h') {
+		} else if (key == HOMING_KEY) {
 			fprintf (fptr, "%s", HOMING_COMMAND);
 		} else if (key == ' ') {
 			skip = !skip;
